@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>혼잡 회피 번호</title>
+<style>
+  :root{
+    --ink:#14161f; --panel:#1c1f2b; --line:#2b3040; --mute:#8a91a6;
+    --hi:#e8ebf2; --lime:#B0D840;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ink);color:var(--hi);
+    font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',system-ui,sans-serif;
+    padding:26px 16px;}
+  .wrap{max-width:560px;margin:0 auto;}
+  h1{margin:0 0 6px;font-size:26px;font-weight:800;line-height:1.2;}
+  .eyebrow{color:var(--mute);font-size:12px;letter-spacing:.18em;margin-bottom:6px;}
+  .lead{margin:0 0 20px;color:var(--mute);font-size:13px;line-height:1.55;}
+  .lead b{color:var(--hi);font-weight:600;}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;}
+  .setrow{width:100%;display:flex;align-items:center;gap:8px;background:transparent;border:none;
+    border-radius:10px;padding:9px 8px;cursor:pointer;margin-bottom:4px;}
+  .setrow.on{background:#232838;}
+  .setrow .lab{color:var(--mute);font-size:11px;width:16px;}
+  .balls{display:flex;gap:6px;flex-wrap:wrap;}
+  .ball{border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-variant-numeric:tabular-nums;}
+  .b-sm{width:27px;height:27px;font-size:11.5px;}
+  .b-big{width:44px;height:44px;font-size:17px;box-shadow:0 4px 12px rgba(0,0,0,.4);
+    border:2px solid rgba(255,255,255,.85);}
+  .meta{display:flex;gap:10px;margin:0 0 14px;padding:0 4px;color:var(--mute);font-size:12px;flex-wrap:wrap;}
+  .btn{width:100%;border:none;border-radius:12px;cursor:pointer;font-weight:800;}
+  .btn-primary{background:var(--lime);color:#14200a;padding:14px 0;font-size:15px;margin-bottom:20px;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:16px;}
+  .card h2{font-size:13px;font-weight:700;margin:0 0 4px;}
+  .card .desc{color:var(--mute);font-size:11px;margin-bottom:12px;line-height:1.5;}
+  input{background:#12141c;border:1px solid var(--line);color:var(--hi);
+    border-radius:9px;padding:10px 12px;font-size:14px;outline:none;font-family:inherit;}
+  .add{width:100%;background:#2b3346;color:var(--hi);border:1px solid var(--line);
+    border-radius:9px;padding:10px 0;font-size:13.5px;font-weight:700;cursor:pointer;}
+  .err{color:#ffb4a2;font-size:12px;margin-top:8px;}
+  .lbl{color:var(--mute);font-size:11px;margin-bottom:9px;}
+  .rr{display:flex;align-items:center;gap:8px;margin-bottom:5px;opacity:.8;}
+  .rr .rn{color:var(--mute);font-size:10.5px;width:34px;}
+  .rr .del{margin-left:auto;background:none;border:none;color:#5a6072;font-size:16px;cursor:pointer;padding:0 6px;}
+  .board{display:grid;grid-template-columns:repeat(9,1fr);gap:6px;margin-bottom:22px;}
+  .cell{aspect-ratio:1;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;background:#232734;color:#565d72;border:1px solid var(--line);}
+  .cell.on{font-weight:700;border:2px solid rgba(255,255,255,.7);}
+  .optrow{display:flex;justify-content:space-between;align-items:center;}
+  .optrow.mb{margin-bottom:14px;}
+  .optrow .t{font-size:13px;} .optrow .s{color:var(--mute);font-size:11px;}
+  .seg{display:flex;gap:6px;}
+  .seg button{width:34px;height:34px;border-radius:9px;cursor:pointer;font-weight:700;
+    background:transparent;color:var(--mute);border:1px solid var(--line);}
+  .seg button.on{background:var(--lime);color:#14200a;border:none;}
+  .tog{width:52px;height:30px;border-radius:15px;cursor:pointer;position:relative;background:#2b3040;border:none;}
+  .tog.on{background:var(--lime);}
+  .tog .knob{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .2s;}
+  .tog.on .knob{left:25px;}
+  .foot{color:var(--mute);font-size:11.5px;line-height:1.6;margin:0;}
+  .btn-reset{background:transparent;color:var(--mute);border:1px solid var(--line);
+    border-radius:9px;padding:8px 0;font-size:12px;font-weight:600;cursor:pointer;width:100%;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">혼잡 회피 번호</div>
+  <h1>남들이 안 고를 다섯 세트</h1>
+  <p class="lead">
+    최근 회차 당첨번호와 겹침을 피하고 생일·연속수 쏠림도 배제해 뽑습니다.
+    <b>당첨 확률은 바뀌지 않고</b>, 3등 당첨 시 상금을 덜 나눌 가능성만 높입니다.
+    현재 <b><span id="curRound">-</span>회</b>까지 반영됨.
+  </p>
+
+  <div class="panel" id="setsBox"></div>
+  <div class="meta" id="metaBox"></div>
+
+  <button class="btn btn-primary" id="rollBtn">다시 5세트 뽑기</button>
+
+  <div class="card">
+    <h2>새 회차 입력</h2>
+    <div class="desc">새 회차가 나오면 당첨번호 6개를 넣으세요. 목록에 <b>영구 저장</b>되고 자동으로 회피에 반영됩니다.</div>
+    <div style="display:flex;gap:8px;margin-bottom:8px;">
+      <input id="inRound" inputmode="numeric" placeholder="회차" style="width:72px;">
+      <input id="inNums" placeholder="당첨번호 6개  예) 3 12 18 25 34 41" style="flex:1;">
+    </div>
+    <button class="add" id="addBtn">추가하고 반영</button>
+    <div class="err" id="inErr"></div>
+  </div>
+
+  <div class="lbl">회피 대상 · 최근 <span id="avoidN">-</span>회</div>
+  <div class="panel" id="recentBox" style="padding:12px;"></div>
+
+  <div class="lbl">번호판 · 세트 <span id="selName">A</span></div>
+  <div class="board" id="board"></div>
+
+  <div class="card">
+    <h2 style="margin-bottom:14px;">세부 조정</h2>
+    <div class="optrow mb">
+      <div><div class="t">32~45 최소 개수</div><div class="s">높을수록 군중 회피 ↑</div></div>
+      <div class="seg" id="segHigh"></div>
+    </div>
+    <div class="optrow">
+      <div><div class="t">연속수 완전 배제</div><div class="s">끄면 3연속 이상만 배제</div></div>
+      <button class="tog" id="togConsec"><span class="knob"></span></button>
+    </div>
+  </div>
+
+  <p class="foot">
+    한계: 1·2등 확률은 오르지 않고, 3등 분배 인원 감소도 보장이 아니라 확률적 경향입니다.
+    입력한 회차는 이 브라우저에 저장됩니다(다른 기기·브라우저와는 공유되지 않음).
+  </p>
+  <button class="btn-reset" id="resetBtn">저장된 입력 기록 초기화</button>
+</div>
+
+<script>
+/* ===== 심어둔 최근 당첨번호 (최신순, 1232~1218회) ===== */
+var SEED = [
+  {round:1232, nums:[12,15,19,22,24,36]},
+  {round:1231, nums:[4,13,14,18,31,38]},
+  {round:1230, nums:[3,8,9,22,28,42]},
+  {round:1229, nums:[12,13,29,34,37,42]},
+  {round:1228, nums:[24,29,30,31,35,44]},
+  {round:1227, nums:[1,14,16,34,41,44]},
+  {round:1226, nums:[4,6,13,17,26,28]},
+  {round:1225, nums:[8,9,19,25,41,42]},
+  {round:1224, nums:[9,18,21,27,44,45]},
+  {round:1223, nums:[16,18,20,32,33,39]},
+  {round:1222, nums:[4,11,17,22,32,41]},
+  {round:1221, nums:[6,13,18,28,30,36]},
+  {round:1220, nums:[2,22,25,28,34,43]},
+  {round:1219, nums:[1,2,15,28,39,45]},
+  {round:1218, nums:[3,28,31,32,42,45]}
+];
+var AVOID_WINDOW = 10;
+var STORE_KEY = 'lotto_avoider_userRounds_v1';
+
+/* ===== 저장/병합 ===== */
+function loadUser(){
+  try{ var s = localStorage.getItem(STORE_KEY); return s? JSON.parse(s): []; }
+  catch(e){ return []; }
+}
+function saveUser(arr){
+  try{ localStorage.setItem(STORE_KEY, JSON.stringify(arr)); }catch(e){}
+}
+function allRounds(){
+  var user = loadUser();
+  var map = {};
+  SEED.forEach(function(r){ map[r.round]=r; });
+  user.forEach(function(r){ map[r.round]=r; });   // 사용자 입력이 우선
+  return Object.keys(map).map(function(k){return map[k];})
+    .sort(function(a,b){return b.round-a.round;});
+}
+
+/* ===== 색 ===== */
+function ballColor(n){
+  if(n<=10) return '#FBC400';
+  if(n<=20) return '#69C8F2';
+  if(n<=30) return '#FF7272';
+  if(n<=40) return '#AAAAAA';
+  return '#B0D840';
+}
+function textOn(n){ return (n>10&&n<=20)?'#0b2b3a':'#1b1b1b'; }
+
+/* ===== 규칙 ===== */
+function draw6(){
+  var pool=[]; for(var i=1;i<=45;i++) pool.push(i);
+  for(var j=pool.length-1;j>0;j--){var k=Math.floor(Math.random()*(j+1));var t=pool[j];pool[j]=pool[k];pool[k]=t;}
+  return pool.slice(0,6).sort(function(a,b){return a-b;});
+}
+function maxRun(s){var best=1,cur=1;for(var i=1;i<s.length;i++){cur=(s[i]===s[i-1]+1)?cur+1:1;if(cur>best)best=cur;}return best;}
+function overlap(a,b){var set={};a.forEach(function(n){set[n]=1;});return b.filter(function(n){return set[n];}).length;}
+function passes(nums,opt,recent){
+  var uniq={}; nums.forEach(function(n){uniq[n]=1;}); if(Object.keys(uniq).length!==6) return false;
+  var sum=nums.reduce(function(a,b){return a+b;},0);
+  var high=nums.filter(function(n){return n>=32;}).length;
+  var odd=nums.filter(function(n){return n%2===1;}).length;
+  var run=maxRun(nums);
+  if(nums.every(function(n){return n<=31;})) return false;
+  if(high<opt.minHigh) return false;
+  if(opt.noConsec && run>=2) return false;
+  if(!opt.noConsec && run>=3) return false;
+  if(odd===0||odd===6) return false;
+  if(sum<110||sum>185) return false;
+  var gaps=[]; for(var i=1;i<nums.length;i++) gaps.push(nums[i]-nums[i-1]);
+  if(gaps.every(function(g){return g===gaps[0];})) return false;
+  if(recent && recent.some(function(d){return overlap(nums,d)>=3;})) return false;
+  return true;
+}
+function genOne(opt,recent){for(var t=0;t<6000;t++){var c=draw6();if(passes(c,opt,recent))return c;}return draw6();}
+function genFive(opt,recent){
+  var out=[],g=0;
+  while(out.length<5 && g++<40000){
+    var c=genOne(opt,recent);
+    var key=c.join(',');
+    if(!out.some(function(s){return s.join(',')===key;})) out.push(c);
+  }
+  return out;
+}
+
+/* ===== 상태 ===== */
+var opt={minHigh:2,noConsec:false};
+var sel=0;
+var sets=[];
+function recentDraws(){ return allRounds().slice(0,AVOID_WINDOW).map(function(r){return r.nums;}); }
+function reroll(){ sets=genFive(opt,recentDraws()); sel=0; render(); }
+
+/* ===== 렌더 ===== */
+function ballEl(n,big){
+  var d=document.createElement('div');
+  d.className='ball '+(big?'b-big':'b-sm');
+  d.style.background=ballColor(n); d.style.color=textOn(n); d.textContent=n;
+  return d;
+}
+function render(){
+  var rounds=allRounds();
+  document.getElementById('curRound').textContent=rounds[0].round;
+  document.getElementById('avoidN').textContent=Math.min(AVOID_WINDOW,rounds.length);
+
+  // 세트
+  var sb=document.getElementById('setsBox'); sb.innerHTML='';
+  sets.forEach(function(s,i){
+    var row=document.createElement('button'); row.className='setrow'+(sel===i?' on':'');
+    row.onclick=function(){sel=i;render();};
+    var lab=document.createElement('span'); lab.className='lab'; lab.textContent=String.fromCharCode(65+i);
+    var bl=document.createElement('span'); bl.className='balls';
+    s.forEach(function(n){bl.appendChild(ballEl(n,false));});
+    row.appendChild(lab); row.appendChild(bl); sb.appendChild(row);
+  });
+
+  // 메타
+  var a=sets[sel]||sets[0];
+  var sum=a.reduce(function(x,y){return x+y;},0);
+  var odd=a.filter(function(n){return n%2===1;}).length;
+  var high=a.filter(function(n){return n>=32;}).length;
+  document.getElementById('metaBox').innerHTML=
+    '<span>세트 '+String.fromCharCode(65+sel)+'</span><span>·</span>'+
+    '<span>합계 '+sum+'</span><span>·</span>'+
+    '<span>홀짝 '+odd+':'+(6-odd)+'</span><span>·</span>'+
+    '<span>32~45 '+high+'개</span>';
+  document.getElementById('selName').textContent=String.fromCharCode(65+sel);
+
+  // 최근 회차 목록
+  var rb=document.getElementById('recentBox'); rb.innerHTML='';
+  var userSet={}; loadUser().forEach(function(r){userSet[r.round]=1;});
+  rounds.slice(0,AVOID_WINDOW).forEach(function(r){
+    var row=document.createElement('div'); row.className='rr';
+    var rn=document.createElement('span'); rn.className='rn'; rn.textContent=r.round;
+    var bl=document.createElement('span'); bl.className='balls';
+    r.nums.forEach(function(n){bl.appendChild(ballEl(n,false));});
+    row.appendChild(rn); row.appendChild(bl);
+    if(userSet[r.round]){ // 사용자가 넣은 건 삭제 가능
+      var del=document.createElement('button'); del.className='del'; del.textContent='×';
+      del.title='삭제';
+      del.onclick=function(){ removeUserRound(r.round); };
+      row.appendChild(del);
+    }
+    rb.appendChild(row);
+  });
+
+  // 번호판
+  var board=document.getElementById('board'); board.innerHTML='';
+  var pick={}; a.forEach(function(n){pick[n]=1;});
+  for(var n=1;n<=45;n++){
+    var c=document.createElement('div'); c.className='cell'+(pick[n]?' on':'');
+    c.textContent=n;
+    if(pick[n]){c.style.background=ballColor(n);c.style.color=textOn(n);}
+    board.appendChild(c);
+  }
+
+  // 옵션
+  var sh=document.getElementById('segHigh'); sh.innerHTML='';
+  [1,2,3].forEach(function(v){
+    var b=document.createElement('button'); b.textContent=v; if(opt.minHigh===v)b.className='on';
+    b.onclick=function(){opt.minHigh=v;reroll();};
+    sh.appendChild(b);
+  });
+  document.getElementById('togConsec').className='tog'+(opt.noConsec?' on':'');
+}
+
+/* ===== 입력 ===== */
+function addRound(){
+  var err=document.getElementById('inErr'); err.textContent='';
+  var rd=parseInt(document.getElementById('inRound').value,10);
+  var raw=document.getElementById('inNums').value;
+  var nums=(raw.match(/\d+/g)||[]).map(Number);
+  if(!rd){err.textContent='회차 번호를 입력하세요.';return;}
+  if(nums.length!==6){err.textContent='당첨번호 6개를 입력하세요. (예: 3 12 18 25 34 41)';return;}
+  var u={}; nums.forEach(function(n){u[n]=1;});
+  if(Object.keys(u).length!==6){err.textContent='중복된 번호가 있습니다.';return;}
+  if(nums.some(function(n){return n<1||n>45;})){err.textContent='번호는 1~45 사이여야 합니다.';return;}
+  nums.sort(function(a,b){return a-b;});
+  var user=loadUser().filter(function(r){return r.round!==rd;});
+  user.push({round:rd,nums:nums});
+  saveUser(user);
+  document.getElementById('inRound').value=String(rd+1);
+  document.getElementById('inNums').value='';
+  reroll();
+}
+function removeUserRound(rd){
+  var user=loadUser().filter(function(r){return r.round!==rd;});
+  saveUser(user); reroll();
+}
+
+/* ===== 이벤트 ===== */
+document.getElementById('rollBtn').onclick=reroll;
+document.getElementById('addBtn').onclick=addRound;
+document.getElementById('inNums').addEventListener('keydown',function(e){if(e.key==='Enter')addRound();});
+document.getElementById('togConsec').onclick=function(){opt.noConsec=!opt.noConsec;reroll();};
+document.getElementById('resetBtn').onclick=function(){
+  if(confirm('입력한 회차 기록을 모두 지우고 심어둔 1232회 기준으로 되돌릴까요?')){
+    try{localStorage.removeItem(STORE_KEY);}catch(e){}
+    reroll();
+  }
+};
+
+/* ===== 시작 ===== */
+document.getElementById('inRound').value=String(allRounds()[0].round+1);
+reroll();
+</script>
+</body>
+</html>
